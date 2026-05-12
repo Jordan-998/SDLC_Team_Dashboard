@@ -198,7 +198,7 @@ hr{border:none;border-top:1px solid var(--border);margin:20px 0}
   <!-- Overview -->
   <div id="p-ov">
     <div class="sec-title">Repos by open issues</div>
-    <div id="ov-repos"></div>
+    <div class="scroll" id="ov-repos"></div>
     <hr>
     <div class="sec-title">Team</div>
     <div class="team" id="ov-team"></div>
@@ -442,7 +442,7 @@ function updateMetrics() {
 
 // ── Overview ──────────────────────────────────────────────────────────────────
 function renderOverview() {
-  const sorted=[...S.repos].filter(r=>r.open_issues_count>0).sort((a,b)=>b.open_issues_count-a.open_issues_count).slice(0,8);
+  const sorted=[...S.repos].filter(r=>r.open_issues_count>0).sort((a,b)=>b.open_issues_count-a.open_issues_count);
   $('ov-repos').innerHTML = sorted.length
     ? sorted.map(r=>`
         <div class="row-item clk" onclick="filterTo('${esc(r.name)}')">
