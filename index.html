@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GitHub PM Dashboard</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f7f7f5;--surface:#fff;--surface2:#f0efeb;--border:#e2e0d8;--border2:#ccc9be;
+  --text:#1a1a18;--text2:#6b6860;--text3:#9c9a93;--accent:#1a56db;
+  --green-bg:#eaf3de;--green-text:#2d5a0e;--green-border:#639922;
+  --red-bg:#fcebeb;--red-text:#a32d2d;--red-border:#e24b4a;
+  --blue-bg:#e6f1fb;--blue-text:#185fa5;--blue-border:#378add;
+  --amber-bg:#faeeda;--amber-text:#854f0b;--amber-border:#ba7517;
+  --gray-bg:#f0efeb;--gray-text:#5f5e5a;--gray-border:#b4b2a9;
+  --r:8px;--rl:12px;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.5;min-height:100vh}
+.app{max-width:960px;margin:0 auto;padding:24px 20px}
+
+/* Gate */
+#gate{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:80vh;gap:16px;text-align:center}
+#gate h1{font-size:22px;font-weight:600}
+#gate p{color:var(--text2);font-size:13px;max-width:420px}
+.gate-form{display:flex;flex-direction:column;gap:10px;width:100%;max-width:460px}
+.gate-form input{padding:10px 12px;border:1px solid var(--border2);border-radius:var(--r);font-size:13px;background:var(--surface);color:var(--text);outline:none;width:100%}
+.gate-form input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(26,86,219,.12)}
+.gate-row{display:flex;gap:8px}
+.gate-row input{flex:1}
+#gate-error{background:var(--red-bg);border:1px solid var(--red-border);color:var(--red-text);border-radius:var(--r);padding:10px 14px;font-size:13px;display:none;width:100%;max-width:460px;text-align:left}
+
+/* Buttons */
+button{font-family:inherit;font-size:13px;cursor:pointer;border-radius:var(--r);border:1px solid var(--border2);background:var(--surface);color:var(--text);padding:7px 14px;transition:background .12s;line-height:1.4}
+button:hover:not(:disabled){background:var(--surface2)}
+button:disabled{opacity:.5;cursor:default}
+.btn-primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn-primary:hover:not(:disabled){background:#1447b8}
+.btn-sm{font-size:12px;padding:4px 10px}
+
+/* Header */
+.hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px;gap:12px}
+.hdr-l{display:flex;align-items:center;gap:10px}
+.hdr-r{display:flex;align-items:center;gap:8px}
+.org-name{font-size:16px;font-weight:600}
+.org-sub{font-size:12px;color:var(--text2)}
+.avatar{border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-weight:600;flex-shrink:0}
+
+/* Metrics */
+.metrics{display:flex;gap:10px;margin-bottom:22px;flex-wrap:wrap}
+.metric{background:var(--surface2);border-radius:var(--r);padding:14px 16px;flex:1;min-width:100px}
+.metric-lbl{font-size:11px;color:var(--text2);margin-bottom:4px}
+.metric-val{font-size:26px;font-weight:600;line-height:1}
+.metric-sub{font-size:11px;color:var(--text3);margin-top:3px}
+
+/* Tabs */
+.tabs{display:flex;border-bottom:1px solid var(--border);margin-bottom:20px}
+.tab{padding:9px 16px;font-size:13px;background:none;border:none;border-bottom:2px solid transparent;margin-bottom:-1px;color:var(--text2);cursor:pointer;border-radius:0}
+.tab:hover{color:var(--text);background:none}
+.tab.on{color:var(--text);font-weight:500;border-bottom-color:var(--text);background:none}
+
+/* Badge */
+.badge{display:inline-flex;align-items:center;font-size:11px;font-weight:500;padding:2px 8px;border-radius:6px;white-space:nowrap;border:1px solid transparent}
+.bg{background:var(--green-bg);color:var(--green-text);border-color:var(--green-border)}
+.bb{background:var(--blue-bg);color:var(--blue-text);border-color:var(--blue-border)}
+.br{background:var(--red-bg);color:var(--red-text);border-color:var(--red-border)}
+.ba{background:var(--amber-bg);color:var(--amber-text);border-color:var(--amber-border)}
+.bz{background:var(--gray-bg);color:var(--gray-text);border-color:var(--gray-border)}
+
+/* Rows */
+.row-item{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);gap:12px}
+.row-item:last-child{border-bottom:none}
+.row-item.clk{cursor:pointer;border-radius:var(--r)}
+.row-item.clk:hover{background:var(--surface2);padding:10px 8px;margin:0 -8px}
+.row-l{display:flex;align-items:center;gap:8px;flex:1;min-width:0}
+.row-r{display:flex;align-items:center;gap:6px;flex-shrink:0}
+.row-name{font-weight:500;font-size:13px}
+
+/* Issues */
+.iss-row{padding:11px 0;border-bottom:1px solid var(--border);display:flex;gap:10px;align-items:flex-start}
+.iss-row:last-child{border-bottom:none}
+.iss-title{font-size:13px;font-weight:500;color:var(--text);text-decoration:none}
+.iss-title:hover{color:var(--accent);text-decoration:underline}
+.iss-labels{display:flex;gap:4px;flex-wrap:wrap;margin-top:4px}
+.iss-meta{font-size:11px;color:var(--text3);margin-top:3px;display:flex;gap:10px;flex-wrap:wrap}
+
+/* Repos */
+.repo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
+.repo-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);padding:13px 15px}
+.repo-card-name{font-size:13px;font-weight:600;margin-bottom:5px;word-break:break-word}
+.repo-card-name a{color:var(--accent);text-decoration:none}
+.repo-card-name a:hover{text-decoration:underline}
+.repo-card-desc{font-size:11px;color:var(--text2);margin-bottom:8px;line-height:1.4}
+.repo-badges{display:flex;gap:5px;flex-wrap:wrap}
+
+/* Projects */
+.proj-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
+.proj-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);padding:14px 16px}
+.proj-title{font-size:14px;font-weight:600;margin-bottom:5px}
+.proj-desc{font-size:12px;color:var(--text2);margin-bottom:10px;line-height:1.4}
+.proj-footer{display:flex;justify-content:space-between;align-items:center}
+.proj-footer span{font-size:11px;color:var(--text3)}
+.proj-footer a{font-size:12px;color:var(--accent);text-decoration:none}
+.proj-footer a:hover{text-decoration:underline}
+
+/* Team */
+.team{display:flex;gap:8px;flex-wrap:wrap}
+.team-chip{display:flex;align-items:center;gap:7px;background:var(--surface2);border-radius:var(--r);padding:5px 10px}
+.team-chip span{font-size:13px}
+
+/* AI */
+.ai-box{background:var(--surface2);border-radius:var(--rl);padding:16px;margin-top:22px}
+.ai-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.ai-title{font-size:13px;font-weight:600}
+.ai-text{font-size:13px;line-height:1.75;white-space:pre-wrap}
+.ai-hint{font-size:13px;color:var(--text2)}
+
+/* Form */
+.form{display:flex;flex-direction:column;gap:14px;max-width:520px}
+.form label{font-size:12px;color:var(--text2);display:block;margin-bottom:4px}
+.form input,.form select,.form textarea{width:100%;padding:8px 10px;font-size:13px;font-family:inherit;border:1px solid var(--border2);border-radius:var(--r);background:var(--surface);color:var(--text);outline:none}
+.form input:focus,.form select:focus,.form textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(26,86,219,.1)}
+.form textarea{resize:vertical;line-height:1.5}
+.form-row{display:flex;align-items:center;gap:10px}
+
+/* Filter bar */
+.fbar{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+.fbar select{font-size:13px;padding:6px 10px;border:1px solid var(--border2);border-radius:var(--r);background:var(--surface);color:var(--text);outline:none}
+.fbar span{font-size:12px;color:var(--text2)}
+
+/* Status / error */
+.err-box{background:var(--red-bg);border:1px solid var(--red-border);color:var(--red-text);border-radius:var(--r);padding:10px 14px;font-size:13px;margin-bottom:16px;display:none}
+.loading{font-size:13px;color:var(--text2);padding:6px 0;display:none;align-items:center;gap:8px;margin-bottom:12px}
+.spinner{width:14px;height:14px;border:2px solid var(--border2);border-top-color:var(--text);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+.sec-title{font-size:13px;font-weight:600;margin-bottom:12px}
+hr{border:none;border-top:1px solid var(--border);margin:20px 0}
+.ok{color:var(--green-text);font-size:13px}
+.fail{color:var(--red-text);font-size:13px}
+.scroll{max-height:520px;overflow-y:auto}
+.muted{color:var(--text2);font-size:13px}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- ── TOKEN GATE ─────────────────────────────────────────────────── -->
+<div id="gate">
+  <div style="font-size:36px">⚡</div>
+  <h1>GitHub PM Dashboard</h1>
+  <p>Connect to your GitHub org to manage repos, issues, and team across your agentic SDLC harness project.</p>
+  <div class="gate-form">
+    <input id="inp-org"   type="text"     placeholder="GitHub org (e.g. centific-cn)"     value="centific-cn" />
+    <div class="gate-row">
+      <input id="inp-tok" type="password" placeholder="github_pat_… or ghp_…" autocomplete="off" />
+      <button class="btn-primary" id="connect-btn" onclick="connect()">Connect →</button>
+    </div>
+    <p style="font-size:11px;color:var(--text3)">Token needs: <code>repo</code>, <code>read:org</code>, <code>project</code> scopes · Stays in memory only</p>
+  </div>
+  <div id="gate-error"></div>
+</div>
+
+<!-- ── DASHBOARD ──────────────────────────────────────────────────── -->
+<div id="dash" style="display:none">
+
+  <div class="hdr">
+    <div class="hdr-l">
+      <div class="avatar" id="av" style="width:36px;height:36px;font-size:14px"></div>
+      <div>
+        <div class="org-name" id="org-disp"></div>
+        <div class="org-sub">Agentic SDLC Harness · 5 engineers</div>
+      </div>
+    </div>
+    <div class="hdr-r">
+      <button onclick="loadAll()" id="ref-btn">↺ Refresh</button>
+      <button class="btn-sm" onclick="disconnect()" style="color:var(--text2)">Disconnect</button>
+    </div>
+  </div>
+
+  <div class="loading" id="loading"><div class="spinner"></div><span id="load-txt"></span></div>
+  <div class="err-box" id="err-box"></div>
+
+  <div class="metrics">
+    <div class="metric"><div class="metric-lbl">Repositories</div><div class="metric-val" id="m1">—</div><div class="metric-sub">in org</div></div>
+    <div class="metric"><div class="metric-lbl">Open Issues</div><div class="metric-val" id="m2">—</div><div class="metric-sub">fetched</div></div>
+    <div class="metric"><div class="metric-lbl">Team Members</div><div class="metric-val" id="m3">—</div><div class="metric-sub">org members</div></div>
+    <div class="metric"><div class="metric-lbl">Active Repos</div><div class="metric-val" id="m4">—</div><div class="metric-sub">with open issues</div></div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab on" id="t-ov"  onclick="go('ov')">Overview</button>
+    <button class="tab"    id="t-is"  onclick="go('is')">Issues</button>
+    <button class="tab"    id="t-re"  onclick="go('re')">Repos</button>
+    <button class="tab"    id="t-pr"  onclick="go('pr')">Projects</button>
+    <button class="tab"    id="t-cr"  onclick="go('cr')">New Issue</button>
+  </div>
+
+  <!-- Overview -->
+  <div id="p-ov">
+    <div class="sec-title">Repos by open issues</div>
+    <div id="ov-repos"></div>
+    <hr>
+    <div class="sec-title">Team</div>
+    <div class="team" id="ov-team"></div>
+    <div class="ai-box">
+      <div class="ai-hdr">
+        <div class="ai-title">AI sprint summary</div>
+        <button onclick="aiSummary()" id="ai-btn">Generate ↗</button>
+      </div>
+      <div id="ai-out"><p class="ai-hint">Click Generate for an AI-powered sprint analysis.</p></div>
+    </div>
+  </div>
+
+  <!-- Issues -->
+  <div id="p-is" style="display:none">
+    <div class="fbar">
+      <select id="iss-filt" onchange="renderIssues()"><option value="">All repos</option></select>
+      <span id="iss-cnt"></span>
+      <button class="btn-sm" onclick="clearFilter()">Clear</button>
+    </div>
+    <div class="scroll" id="iss-list"></div>
+  </div>
+
+  <!-- Repos -->
+  <div id="p-re" style="display:none">
+    <div class="repo-grid" id="re-grid"></div>
+  </div>
+
+  <!-- Projects -->
+  <div id="p-pr" style="display:none">
+    <div id="pr-content"></div>
+  </div>
+
+  <!-- New Issue -->
+  <div id="p-cr" style="display:none">
+    <div class="form">
+      <div><label>Repository *</label><select id="cr-repo"><option value="">Select repo…</option></select></div>
+      <div><label>Title *</label><input type="text" id="cr-title" placeholder="Issue title"/></div>
+      <div><label>Description</label><textarea id="cr-body" rows="4" placeholder="Describe the issue…"></textarea></div>
+      <div><label>Assign to</label><select id="cr-assign"><option value="">Unassigned</option></select></div>
+      <div><label>Labels (comma-separated)</label><input type="text" id="cr-labels" placeholder="bug, enhancement…"/></div>
+      <div class="form-row">
+        <button class="btn-primary" onclick="createIssue()" id="cr-btn">Create Issue</button>
+        <span id="cr-msg"></span>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /dash -->
+</div><!-- /app -->
+
+<script>
+'use strict';
+
+let TOKEN = '', ORG = '';
+let S = { repos:[], members:[], issues:[], projects:[] };
+
+// ── helpers ───────────────────────────────────────────────────────────────────
+const $  = id => document.getElementById(id);
+const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const hue = s => (s||'').split('').reduce((a,c)=>a+c.charCodeAt(0),0)%360;
+const av  = (login, sz=24) => {
+  const init = (login||'?').replace(/[-_]/g,' ').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2)||'?';
+  const h=hue(login);
+  return `<div class="avatar" title="${esc(login)}" style="width:${sz}px;height:${sz}px;font-size:${Math.round(sz*.38)}px;background:hsl(${h},50%,75%);color:hsl(${h},50%,20%)">${init}</div>`;
+};
+const bdg = (lbl,cls='bb') => `<span class="badge ${cls}">${esc(lbl)}</span>`;
+const fmtD = d => d ? new Date(d).toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'}) : '';
+const lcol = n => {
+  n=(n||'').toLowerCase();
+  if(n.includes('bug')||n.includes('error')) return 'br';
+  if(n.includes('feat')||n.includes('new'))  return 'bb';
+  if(n.includes('enhanc')||n.includes('impr'))return 'bg';
+  if(n.includes('block')||n.includes('urgent'))return 'ba';
+  return 'bz';
+};
+
+function setStatus(txt) {
+  const el=$('loading'); const t=$('load-txt');
+  if(txt){el.style.display='flex';t.textContent=txt;}
+  else   {el.style.display='none';}
+}
+function showErr(msg,where='err-box'){
+  const el=$(where); el.style.display='block';
+  el.innerHTML=`<strong>Error:</strong> ${esc(msg)}`;
+}
+function hideErr(where='err-box'){ $(where).style.display='none'; }
+
+// ── GitHub API ────────────────────────────────────────────────────────────────
+async function gh(path, opts={}) {
+  const url = path.startsWith('http') ? path : 'https://api.github.com'+path;
+  const res = await fetch(url, {
+    method: opts.method||'GET',
+    headers: {
+      'Authorization': 'Bearer '+TOKEN,
+      'Accept': 'application/vnd.github+json',
+      'X-GitHub-Api-Version': '2022-11-28',
+      ...(opts.body ? {'Content-Type':'application/json'} : {})
+    },
+    body: opts.body ? JSON.stringify(opts.body) : undefined
+  });
+  if (!res.ok) {
+    let msg = `HTTP ${res.status} ${res.statusText}`;
+    try { const j=await res.json(); msg = j.message||msg; } catch{}
+    throw new Error(msg+' ('+path+')');
+  }
+  return res.json();
+}
+
+async function gql(query, variables={}) {
+  const res = await fetch('https://api.github.com/graphql', {
+    method:'POST',
+    headers:{'Authorization':'Bearer '+TOKEN,'Content-Type':'application/json'},
+    body: JSON.stringify({query,variables})
+  });
+  if (!res.ok) throw new Error('GraphQL '+res.status);
+  return res.json();
+}
+
+// ── Connect ───────────────────────────────────────────────────────────────────
+async function connect() {
+  const tok = $('inp-tok').value.trim();
+  const org = $('inp-org').value.trim();
+  const gateErr = $('gate-error');
+  const btn = $('connect-btn');
+
+  gateErr.style.display='none';
+  gateErr.textContent='';
+
+  if (!tok) { gateErr.style.display='block'; gateErr.textContent='Please enter your GitHub token.'; return; }
+  if (!org) { gateErr.style.display='block'; gateErr.textContent='Please enter your GitHub org or username.'; return; }
+
+  btn.disabled=true; btn.textContent='Connecting…';
+
+  try {
+    TOKEN=tok; ORG=org;
+    // Verify token works
+    await gh('/user');
+  } catch(e) {
+    TOKEN=''; ORG='';
+    btn.disabled=false; btn.textContent='Connect →';
+    gateErr.style.display='block';
+    gateErr.textContent='Could not connect: '+e.message+'. Check your token and try again.';
+    return;
+  }
+
+  // Show dashboard
+  $('gate').style.display='none';
+  $('dash').style.display='block';
+
+  const h=hue(ORG);
+  const avEl=$('av');
+  avEl.textContent=ORG.slice(0,2).toUpperCase();
+  avEl.style.background=`hsl(${h},50%,75%)`;
+  avEl.style.color=`hsl(${h},50%,20%)`;
+  $('org-disp').textContent=ORG;
+
+  btn.disabled=false; btn.textContent='Connect →';
+
+  await loadAll();
+}
+
+function disconnect() {
+  TOKEN=''; ORG=''; S={repos:[],members:[],issues:[],projects:[]};
+  $('gate').style.display='flex';
+  $('dash').style.display='none';
+  $('inp-tok').value='';
+}
+
+// ── Load data ─────────────────────────────────────────────────────────────────
+async function loadAll() {
+  hideErr(); $('ref-btn').disabled=true;
+  S={repos:[],members:[],issues:[],projects:[]};
+
+  try {
+    // Repos — try org first, fall back to user
+    setStatus('Fetching repositories…');
+    try {
+      const data = await gh(`/orgs/${ORG}/repos?per_page=100&sort=updated`);
+      S.repos = Array.isArray(data)?data:[];
+    } catch(e1) {
+      try {
+        const data = await gh(`/users/${ORG}/repos?per_page=100&sort=updated`);
+        S.repos = Array.isArray(data)?data:[];
+      } catch(e2) {
+        throw new Error('Could not fetch repos: '+e2.message);
+      }
+    }
+
+    // Members — try org, fall back silently
+    setStatus('Fetching team members…');
+    try {
+      const data = await gh(`/orgs/${ORG}/members?per_page=100`);
+      S.members = Array.isArray(data)?data:[];
+    } catch { S.members=[]; }
+
+    // Issues for repos with open issues
+    const withIssues = [...S.repos]
+      .filter(r=>r.open_issues_count>0)
+      .sort((a,b)=>b.open_issues_count-a.open_issues_count)
+      .slice(0,8);
+
+    for (const r of withIssues) {
+      setStatus(`Fetching issues: ${r.name}…`);
+      try {
+        const data = await gh(`/repos/${ORG}/${r.name}/issues?state=open&per_page=30`);
+        (Array.isArray(data)?data:[]).forEach(i=>{ i._repo=r.name; S.issues.push(i); });
+      } catch { /* skip */ }
+    }
+
+    // Projects v2
+    setStatus('Fetching projects…');
+    try {
+      const res = await gql(`query($org:String!){organization(login:$org){projectsV2(first:20){nodes{id number title shortDescription closed url updatedAt}}}}`,{org:ORG});
+      S.projects=(res?.data?.organization?.projectsV2?.nodes||[]).filter(p=>!p.closed);
+    } catch { S.projects=[]; }
+
+  } catch(e) {
+    setStatus('');
+    showErr(e.message);
+    $('ref-btn').disabled=false;
+    return;
+  }
+
+  setStatus('');
+  $('ref-btn').disabled=false;
+  updateMetrics();
+  renderOverview();
+  renderIssues();
+  renderRepos();
+  renderProjects();
+  populateForm();
+}
+
+// ── Metrics ───────────────────────────────────────────────────────────────────
+function updateMetrics() {
+  $('m1').textContent=S.repos.length;
+  $('m2').textContent=S.issues.length;
+  $('m3').textContent=S.members.length;
+  $('m4').textContent=S.repos.filter(r=>r.open_issues_count>0).length;
+}
+
+// ── Overview ──────────────────────────────────────────────────────────────────
+function renderOverview() {
+  const sorted=[...S.repos].filter(r=>r.open_issues_count>0).sort((a,b)=>b.open_issues_count-a.open_issues_count).slice(0,8);
+  $('ov-repos').innerHTML = sorted.length
+    ? sorted.map(r=>`
+        <div class="row-item clk" onclick="filterTo('${esc(r.name)}')">
+          <div class="row-l"><span class="row-name">${esc(r.name)}</span>${r.language?bdg(r.language,'bb'):''}</div>
+          <div class="row-r">${bdg(r.open_issues_count+' open','bg')}</div>
+        </div>`).join('')
+    : '<p class="muted">No repos with open issues.</p>';
+
+  $('ov-team').innerHTML = S.members.length
+    ? S.members.map(m=>`<div class="team-chip">${av(m.login,22)}<span>${esc(m.login)}</span></div>`).join('')
+    : '<p class="muted">No members found (token may need read:org scope).</p>';
+}
+
+// ── Issues ────────────────────────────────────────────────────────────────────
+function renderIssues() {
+  const sel=$('iss-filt').value;
+  // rebuild dropdown
+  const repos=[...new Set(S.issues.map(i=>i._repo))].sort();
+  $('iss-filt').innerHTML='<option value="">All repos</option>'+repos.map(r=>`<option value="${esc(r)}"${sel===r?' selected':''}>${esc(r)}</option>`).join('');
+
+  const list=sel?S.issues.filter(i=>i._repo===sel):S.issues;
+  $('iss-cnt').textContent=list.length+' issues';
+  $('iss-list').innerHTML=list.length
+    ? list.slice(0,60).map(i=>`
+        <div class="iss-row">
+          <div style="flex:1;min-width:0">
+            <a class="iss-title" href="${esc(i.html_url)}" target="_blank">${esc(i.title)}</a>
+            <div class="iss-labels">${(i.labels||[]).slice(0,4).map(l=>bdg(l.name,lcol(l.name))).join('')}</div>
+            <div class="iss-meta">
+              <span>#${i.number} · ${esc(i._repo)}</span>
+              ${i.created_at?`<span>${fmtD(i.created_at)}</span>`:''}
+              ${i.comments>0?`<span>💬 ${i.comments}</span>`:''}
+              ${i.milestone?`<span>🏁 ${esc(i.milestone.title)}</span>`:''}
+            </div>
+          </div>
+          ${i.assignee?av(i.assignee.login,26):''}
+        </div>`).join('')
+    : '<p class="muted" style="padding:12px 0">No open issues.</p>';
+}
+
+function filterTo(name) { go('is'); $('iss-filt').value=name; renderIssues(); }
+function clearFilter()  { $('iss-filt').value=''; renderIssues(); }
+
+// ── Repos ─────────────────────────────────────────────────────────────────────
+function renderRepos() {
+  $('re-grid').innerHTML=S.repos.map(r=>`
+    <div class="repo-card">
+      <div class="repo-card-name"><a href="${esc(r.html_url)}" target="_blank">${esc(r.name)}</a></div>
+      ${r.description?`<div class="repo-card-desc">${esc(r.description.slice(0,80))}${r.description.length>80?'…':''}</div>`:''}
+      <div class="repo-badges">
+        ${r.language?bdg(r.language,'bb'):''}
+        ${r.open_issues_count>0?bdg(r.open_issues_count+' issues','bg'):''}
+        ${r.stargazers_count>0?bdg('★ '+r.stargazers_count,'bz'):''}
+        ${r.private?bdg('private','ba'):bdg('public','bz')}
+      </div>
+    </div>`).join('');
+}
+
+// ── Projects ──────────────────────────────────────────────────────────────────
+function renderProjects() {
+  const el=$('pr-content');
+  if(!S.projects.length){ el.innerHTML='<p class="muted">No active GitHub Projects v2 found.</p>'; return; }
+  el.innerHTML=`<div class="proj-grid">${S.projects.map(p=>`
+    <div class="proj-card">
+      <div class="proj-title">${esc(p.title)}</div>
+      ${p.shortDescription?`<div class="proj-desc">${esc(p.shortDescription)}</div>`:''}
+      <div class="proj-footer"><span>Updated ${fmtD(p.updatedAt)}</span><a href="${esc(p.url)}" target="_blank">Open ↗</a></div>
+    </div>`).join('')}</div>`;
+}
+
+// ── Populate form ─────────────────────────────────────────────────────────────
+function populateForm() {
+  $('cr-repo').innerHTML='<option value="">Select repo…</option>'+S.repos.map(r=>`<option value="${esc(r.name)}">${esc(r.name)}</option>`).join('');
+  $('cr-assign').innerHTML='<option value="">Unassigned</option>'+S.members.map(m=>`<option value="${esc(m.login)}">${esc(m.login)}</option>`).join('');
+}
+
+// ── Create issue ──────────────────────────────────────────────────────────────
+async function createIssue() {
+  const repo=$('cr-repo').value, title=$('cr-title').value.trim();
+  const msg=$('cr-msg'), btn=$('cr-btn');
+  msg.textContent=''; msg.className='';
+  if(!repo||!title){ msg.className='fail'; msg.textContent='Repo and title are required.'; return; }
+  btn.disabled=true;
+  try {
+    const body={ title, body:$('cr-body').value.trim() };
+    const asgn=$('cr-assign').value; if(asgn) body.assignees=[asgn];
+    const lbls=$('cr-labels').value.trim(); if(lbls) body.labels=lbls.split(',').map(s=>s.trim()).filter(Boolean);
+    const created=await gh(`/repos/${ORG}/${repo}/issues`,{method:'POST',body});
+    msg.className='ok'; msg.textContent=`✓ Issue #${created.number} created!`;
+    $('cr-title').value=''; $('cr-body').value=''; $('cr-labels').value='';
+    setTimeout(loadAll,1500);
+  } catch(e){ msg.className='fail'; msg.textContent='Error: '+e.message; }
+  finally{ btn.disabled=false; }
+}
+
+// ── AI summary ────────────────────────────────────────────────────────────────
+async function aiSummary() {
+  const btn=$('ai-btn'), out=$('ai-out');
+  btn.disabled=true;
+  out.innerHTML='<div style="display:flex;align-items:center;gap:8px"><div class="spinner"></div><span class="muted">Analyzing…</span></div>';
+  const snap={
+    org:ORG, repoCount:S.repos.length, openIssues:S.issues.length,
+    members:S.members.map(m=>m.login),
+    topRepos:S.repos.slice(0,8).map(r=>({name:r.name,lang:r.language,issues:r.open_issues_count,updated:r.updated_at?.slice(0,10)})),
+    issuesByRepo:S.issues.reduce((a,i)=>{a[i._repo]=(a[i._repo]||0)+1;return a;},{}),
+    projects:S.projects.map(p=>p.title)
+  };
+  try {
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514', max_tokens:800,
+        messages:[{role:'user',content:`You are a senior PM for a 5-engineer team building an agentic SDLC harness at ${ORG}. Write a concise sprint brief in 3 short paragraphs:\n1. Overall health & recent activity\n2. Key bottlenecks or risks\n3. Top 3 priorities this sprint\n\nBe direct and actionable.\n\n${JSON.stringify(snap)}`}]
+      })
+    });
+    const d=await res.json();
+    const txt=d.content?.[0]?.text||'No response.';
+    out.innerHTML=`<p class="ai-text">${esc(txt)}</p>`;
+  } catch(e){ out.innerHTML=`<p class="fail">Error: ${esc(e.message)}</p>`; }
+  finally{ btn.disabled=false; }
+}
+
+// ── Tabs ──────────────────────────────────────────────────────────────────────
+const PANES=['ov','is','re','pr','cr'];
+function go(name) {
+  PANES.forEach(p=>{
+    $('p-'+p).style.display = p===name?'block':'none';
+    $('t-'+p).classList.toggle('on', p===name);
+  });
+  if(name==='is') $('t-is').textContent=`Issues (${S.issues.length})`;
+}
+
+// Token must be entered manually — never hardcode credentials in a shared/public file.
+</script>
+</body>
+</html>
